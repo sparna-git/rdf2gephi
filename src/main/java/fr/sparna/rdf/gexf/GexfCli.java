@@ -14,7 +14,7 @@ public class GexfCli {
 		
 		@Parameter(
 				names = { "-o", "--output" },
-				description = "Chemin vers le dossier où sera enregistré la sortie",
+				description = "Chemin vers le fichier où sera enregistré la sortie",
 				required = true
 		)
 		private String output;
