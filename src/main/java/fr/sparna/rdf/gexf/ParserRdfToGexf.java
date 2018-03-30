@@ -5,9 +5,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
 
 import org.eclipse.rdf4j.query.AbstractTupleQueryResultHandler;
 import org.eclipse.rdf4j.query.BindingSet;
@@ -81,7 +84,7 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {					
 					if(bindingSet.getValue("node")!=null){
-						
+
 						Node node = graph.createNode(bindingSet.getValue("node").stringValue());
 						if(bindingSet.getValue("label")!=null){
 							node.setLabel(bindingSet.getValue("label").stringValue());
@@ -156,28 +159,51 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 		AttributeList attrList = new AttributeListImpl(AttributeClass.EDGE);	
 		attrList.createAttribute("type", AttributeType.STRING, "type");
 		graph.getAttributeLists().add(attrList);
+		List<BindingSet> listBindingSet=new ArrayList<BindingSet>();
+
+		//Récupération du résultat
 		try(RepositoryConnection c = repo.getConnection()) {
 			String sparqlRequest=SparqlRequest.LIST_EDGES;
 			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {
-					//log.debug(bindingSet.getValue("s")+" / "+bindingSet.getValue("p")+" / "+bindingSet.getBinding("o"));
-					if(bindingSet.getValue("s")!=null){
-						String property=bindingSet.getValue("p").stringValue();
-						int index=property.contains("#")?property.lastIndexOf("#"):property.lastIndexOf("/");
-						String label=property.substring(index+1);
-						Edge edge = graph.getNode(bindingSet.getValue("s").stringValue())
-								   .connectTo(label,graph.getNode(bindingSet.getValue("o").stringValue())
-								    ).setEdgeType(EdgeType.DIRECTED);
-						Attribute at=new AttributeListImpl(AttributeClass.EDGE).createAttribute("type",AttributeType.STRING,"type");
-						edge.getAttributeValues().addValue(at, label);
-					}
-
+					listBindingSet.add(bindingSet);	
 				}
 			});
+		}
+		//Ajout des edges
+		for(BindingSet bindingSet : listBindingSet){
+			if(bindingSet.getValue("s")!=null){
+				String property=bindingSet.getValue("p").stringValue();
+				int index=property.contains("#")?property.lastIndexOf("#"):property.lastIndexOf("/");
+				String label=property.substring(index+1);
+				Edge edge=null;
+				
+				try {
+					edge = graph.getNode(bindingSet.getValue("s").stringValue())
+							.connectTo(
+									UUID.randomUUID().toString(),
+									label,
+									graph.getNode(bindingSet.getValue("o").stringValue()
+											)
+									).setEdgeType(EdgeType.DIRECTED);
 
-		}	
+					Properties p = new java.util.Properties();
+					p.load(new FileInputStream(new File("src/main/resources/config.properties")));
+					String value=p.getProperty(label);
+					if(value!=null){
+						float weight=Float.parseFloat(value);
+						edge.setWeight(weight);
+					}
+				} catch (Exception e) {
+					log.debug("warning -> "+e.getMessage());
+					continue;
+				}
 
+				Attribute at=new AttributeListImpl(AttributeClass.EDGE).createAttribute("type",AttributeType.STRING,"type");
+				edge.getAttributeValues().addValue(at, label);
+			}
+		}
 	}
 
 	/**
