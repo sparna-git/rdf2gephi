@@ -21,6 +21,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.ExceptionTypeFilter;
 
 import fr.sparna.rdf.rdf4j.toolkit.query.Perform;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Edge;
@@ -42,13 +43,15 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 	private static Logger log = LoggerFactory.getLogger(ParserRdfToGexf.class.getName());
 
 	private Repository repo;
-
+	
+	private GexfCli args;
 
 	@Override
 	public void rdfToGexf(Object o) throws FileNotFoundException, IOException {
 
 		//chargement du fichier rdf et stockage dans le repository
 		GexfCli args=(GexfCli)o;
+		this.args=args;
 		RepositorySupplier repositorySupplier=new RepositorySupplier(
 				new FileInputStream(args.getInput()),
 				Rio.getParserFormatForFileName(args.getInput())
@@ -187,14 +190,16 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 									graph.getNode(bindingSet.getValue("o").stringValue()
 											)
 									).setEdgeType(EdgeType.DIRECTED);
-
-					Properties p = new java.util.Properties();
-					p.load(new FileInputStream(new File("src/main/resources/config.properties")));
-					String value=p.getProperty(label);
-					if(value!=null){
-						float weight=Float.parseFloat(value);
-						edge.setWeight(weight);
+					if(args.getWeight()!=null){
+						Properties p = new java.util.Properties();
+						p.load(new FileInputStream(new File(args.getWeight())));
+						String value=p.getProperty(label);
+						if(value!=null){
+							float weight=Float.parseFloat(value);
+							edge.setWeight(weight);
+						}
 					}
+					
 				} catch (Exception e) {
 					log.debug("warning -> "+e.getMessage());
 					continue;

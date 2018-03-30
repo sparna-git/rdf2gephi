@@ -19,9 +19,20 @@ public class GexfCli {
 		)
 		private String output;
 	
+		@Parameter(
+				names = { "-w", "--weight" },
+				description = "Chemin vers le fichier properties définissant le poids des liens",
+				required = false
+		)
+		private String weight;
+		
 
 		public String getInput() {
 			return this.input;
+		}
+		
+		public String getWeight() {
+			return this.weight;
 		}
 		
 		public String getOutput() {
