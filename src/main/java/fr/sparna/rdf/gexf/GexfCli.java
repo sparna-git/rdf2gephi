@@ -20,19 +20,41 @@ public class GexfCli {
 		private String output;
 	
 		@Parameter(
-				names = { "-w", "--weight" },
-				description = "Chemin vers le fichier properties définissant le poids des liens",
+				names = { "-c", "--config" },
+				description = "Chemin vers le fichier config.properties définissant les propriétés à prendre en compte",
 				required = false
 		)
-		private String weight;
+		private String config;
+		
+		@Parameter(
+				names = { "-start", "--dateEntryInForce" },
+				description = "Date de mise en vigueur",
+				required = false
+		)
+		private boolean dateEntryInForce;
+		
+		@Parameter(
+				names = { "-end", "--dateNoLongerInForce" },
+				description = "Date de fin",
+				required = false
+		)
+		private boolean dateNoLongerInForce;
 		
 
+		public boolean isDateNoLongerInForce() {
+			return this.dateNoLongerInForce;
+		}
+		
+		public boolean isDateEntryInForce() {
+			return this.dateEntryInForce;
+		}
+		
 		public String getInput() {
 			return this.input;
 		}
 		
-		public String getWeight() {
-			return this.weight;
+		public String getConfig() {
+			return this.config;
 		}
 		
 		public String getOutput() {

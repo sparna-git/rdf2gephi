@@ -5,8 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Writer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -21,7 +22,6 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.ExceptionTypeFilter;
 
 import fr.sparna.rdf.rdf4j.toolkit.query.Perform;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Edge;
@@ -43,11 +43,14 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 	private static Logger log = LoggerFactory.getLogger(ParserRdfToGexf.class.getName());
 
 	private Repository repo;
-	
+
 	private GexfCli args;
+
+	private Properties property;
 
 	@Override
 	public void rdfToGexf(Object o) throws FileNotFoundException, IOException {
+
 
 		//chargement du fichier rdf et stockage dans le repository
 		GexfCli args=(GexfCli)o;
@@ -60,10 +63,15 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 
 		this.repo=repositorySupplier.getRepository();
 
+		//Chargement du fichier de config
+		if(args.getConfig()!=null){
+			this.property = new java.util.Properties();
+			this.property.load(new FileInputStream(new File(args.getConfig())));
+		}
 		// création du graphe
 		Gexf gexf=GexfClass.getGexf();
 		Graph graph =gexf.getGraph();
-		graph.setDefaultEdgeType(EdgeType.DIRECTED).setMode(Mode.DYNAMIC);
+		graph.setDefaultEdgeType(EdgeType.DIRECTED).setMode(Mode.DYNAMIC).setTimeType("date");
 
 		//Liste des attributs
 		AttributeList attrList = new AttributeListImpl(AttributeClass.NODE);	
@@ -77,18 +85,44 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 		//Ajout de la liste des attributs au graphe
 		graph.getAttributeLists().add(attrList);
 
-		//requête sparql ramenant tous les noeuds et leur libellés
+		//requête sparql 
 		String sparqlRequest=SparqlRequest.QUERY_LIST_NODES;
-
+		if(args.isDateEntryInForce()){
+			sparqlRequest=sparqlRequest.replaceAll("_OPTIONSTART_", "OPTIONAL{?node legilux:dateEntryInForce ?start.}");
+		}else{
+			sparqlRequest=sparqlRequest.replaceAll("_OPTIONSTART_", " ");
+		}
+		if(args.isDateEntryInForce()){
+			sparqlRequest=sparqlRequest.replaceAll("_OPTIONEND_", "OPTIONAL{?node legilux:dateNoLongerInForce ?end.}");
+		}else{
+			sparqlRequest=sparqlRequest.replaceAll("_OPTIONEND_", " ");
+		}
+		SimpleDateFormat formatter=new SimpleDateFormat("yyyy-mm-dd");
 		//Création des noeuds
 		try(RepositoryConnection c = repo.getConnection()) {
-
+			log.debug("Traitement de  noeuds");
 			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {					
 					if(bindingSet.getValue("node")!=null){
-
+						log.debug("Traitement du  noeud "+ bindingSet.getValue("node").stringValue());
 						Node node = graph.createNode(bindingSet.getValue("node").stringValue());
+
+
+						//Ajout des dates si elles existent
+						try {
+							if(bindingSet.getValue("start")!=null){
+								node.setStartValue(formatter.parse(bindingSet.getValue("start").stringValue()));
+							}
+							if(bindingSet.getValue("end")!=null){
+								node.setEndValue(formatter.parse(bindingSet.getValue("end").stringValue()));
+							}
+						}catch (ParseException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+
+						//Ajout du label
 						if(bindingSet.getValue("label")!=null){
 							node.setLabel(bindingSet.getValue("label").stringValue());
 						}
@@ -107,9 +141,10 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 				}
 
 			});
+
+			//On récupère les edges
+			this.addEdges(graph,c);
 		}
-		//On récupère les edges
-		this.addEdges(graph);
 
 		//sauvegarde du fichier gexf
 		StaxGraphWriter graphWriter = new StaxGraphWriter();
@@ -121,10 +156,11 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 			log.debug("path to gexf file ->"+f.getAbsolutePath());
 			log.info("Done");
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 
 	}
+
 
 	/**
 	 * 
@@ -136,7 +172,12 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 
 		List<String> properties=new ArrayList<String>();
 		try(RepositoryConnection c = repo.getConnection()) {
-			String sparqlRequest=SparqlRequest.LIST_LITERAL_PROPERTIES;
+			String sparqlRequest=SparqlRequest.LIST_LITERAL_PROPERTIES
+					.replaceAll(
+							"_FILTER_", 
+							" FILTER(?p!=legilux:dateEntryInForce && ?p!=legilux:dateDocument && ?p!= legilux:dateNoLongerInForce)"
+							);
+
 			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {
@@ -149,66 +190,56 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 		return properties;
 	}
 
-
 	/**
 	 * Ajout des edges au graphe
 	 * @param graph
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 * 
 	 */
-	private void addEdges(Graph graph) {
+	private void addEdges(Graph graph, RepositoryConnection c) throws FileNotFoundException, IOException {
 
 		log.debug("récupération des edges");
 		//Attributes
-		AttributeList attrList = new AttributeListImpl(AttributeClass.EDGE);	
-		attrList.createAttribute("type", AttributeType.STRING, "type");
+		AttributeList attrList = new AttributeListImpl(AttributeClass.EDGE);
+		Attribute at=attrList.createAttribute("type",AttributeType.STRING,"type");
 		graph.getAttributeLists().add(attrList);
-		List<BindingSet> listBindingSet=new ArrayList<BindingSet>();
+		String sparqlRequest=SparqlRequest.LIST_EDGES;
 
-		//Récupération du résultat
-		try(RepositoryConnection c = repo.getConnection()) {
-			String sparqlRequest=SparqlRequest.LIST_EDGES;
-			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
-				@Override
-				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {
-					listBindingSet.add(bindingSet);	
-				}
-			});
-		}
-		//Ajout des edges
-		for(BindingSet bindingSet : listBindingSet){
-			if(bindingSet.getValue("s")!=null){
-				String property=bindingSet.getValue("p").stringValue();
-				int index=property.contains("#")?property.lastIndexOf("#"):property.lastIndexOf("/");
-				String label=property.substring(index+1);
-				Edge edge=null;
-				
-				try {
-					edge = graph.getNode(bindingSet.getValue("s").stringValue())
-							.connectTo(
-									UUID.randomUUID().toString(),
-									label,
-									graph.getNode(bindingSet.getValue("o").stringValue()
-											)
-									).setEdgeType(EdgeType.DIRECTED);
-					if(args.getWeight()!=null){
-						Properties p = new java.util.Properties();
-						p.load(new FileInputStream(new File(args.getWeight())));
-						String value=p.getProperty(label);
-						if(value!=null){
-							float weight=Float.parseFloat(value);
-							edge.setWeight(weight);
+		Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
+			@Override
+			public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {
+				if(bindingSet.getValue("s")!=null){
+					String predicat=bindingSet.getValue("p").stringValue();
+					int index=predicat.contains("#")?predicat.lastIndexOf("#"):predicat.lastIndexOf("/");
+					String label=predicat.substring(index+1);
+					Edge edge=null;
+
+					try {
+						edge = graph.getNode(bindingSet.getValue("s").stringValue())
+								.connectTo(
+										UUID.randomUUID().toString(),
+										label,
+										graph.getNode(bindingSet.getValue("o").stringValue()
+												)
+										).setEdgeType(EdgeType.DIRECTED);
+						if(property!=null){
+							String value=property.getProperty(label);
+							if(value!=null){
+								float weight=Float.parseFloat(value);
+								edge.setWeight(weight);
+							}
 						}
-					}
-					
-				} catch (Exception e) {
-					log.debug("warning -> "+e.getMessage());
-					continue;
-				}
+						edge.getAttributeValues().addValue(at, label);
 
-				Attribute at=new AttributeListImpl(AttributeClass.EDGE).createAttribute("type",AttributeType.STRING,"type");
-				edge.getAttributeValues().addValue(at, label);
+					} catch (Exception e) {
+						log.debug("warning -> "+e.getMessage());
+
+					}
+				}	
 			}
-		}
+		});
+		log.debug("Fin du traitement des edges");
 	}
 
 	/**
@@ -218,8 +249,13 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 	 * Une liste des Triplets ayant pour uri l'uri du noeud passé en paramètre
 	 */
 	private List<NodeAttribute> getTriplets(String uri) {
-
+		log.debug("Traitement des triplets");
 		String sparqlRequest=SparqlRequest.QUERY_READ_RESOURCE_LITERALS.replaceAll("_node", uri);
+		sparqlRequest=sparqlRequest.replaceAll(
+				"_FILTER_", 
+				" FILTER(?predicat!=legilux:dateEntryInForce && ?predicat!=legilux:dateDocument && ?predicat!= legilux:dateNoLongerInForce)"
+				);
+
 		List<NodeAttribute> list=new ArrayList<NodeAttribute>();
 		try(RepositoryConnection c = repo.getConnection()) {
 
@@ -231,12 +267,13 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 						node.setSubject(bindingSet.getValue("node").stringValue());
 						node.setPredicat(bindingSet.getValue("predicat").stringValue());
 						node.setValue(bindingSet.getValue("object").stringValue());
-						System.out.println(bindingSet.getValue("predicat").stringValue());
+						//System.out.println(bindingSet.getValue("predicat").stringValue());
 						list.add(node);			
 					}
 				}
 			});
 		}
+		log.debug("Fin du traitement des triplets");
 		return list;
 	}
 }
