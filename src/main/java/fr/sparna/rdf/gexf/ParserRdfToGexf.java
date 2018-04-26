@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.query.AbstractTupleQueryResultHandler;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.TupleQueryResultHandlerException;
@@ -68,10 +69,16 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 			this.property = new java.util.Properties();
 			this.property.load(new FileInputStream(new File(args.getConfig())));
 		}
+		
 		// création du graphe
 		Gexf gexf=GexfClass.getGexf();
 		Graph graph =gexf.getGraph();
-		graph.setDefaultEdgeType(EdgeType.DIRECTED).setMode(Mode.DYNAMIC).setTimeType("date");
+		graph.setDefaultEdgeType(EdgeType.DIRECTED);
+
+		// set in dynamic mode if proper options are enabled
+		if(args.getEndDateProperty() != null || args.getStartDateProperty() != null) {
+			graph.setMode(Mode.DYNAMIC).setTimeType("date");
+		}		
 
 		//Liste des attributs
 		AttributeList attrList = new AttributeListImpl(AttributeClass.NODE);	
@@ -98,18 +105,39 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 		}else{
 			sparqlRequest=sparqlRequest.replaceAll("_OPTIONEND_", " ");
 		}
+		
 		SimpleDateFormat formatter=new SimpleDateFormat("yyyy-mm-dd");
 		//Création des noeuds
 		try(RepositoryConnection c = repo.getConnection()) {
-			log.debug("Traitement des  noeuds");
+			log.debug("Nodes");
 			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {					
+					
+					int counter=0;
+					
 					if(bindingSet.getValue("node")!=null){
-						log.debug("Traitement du  noeud "+ bindingSet.getValue("node").stringValue());
-						Node node = graph.createNode(bindingSet.getValue("node").stringValue());
+						Resource currentNode = (Resource)bindingSet.getValue("node");
+						
+						log.debug("Node : "+(counter++)+" ("+currentNode.stringValue()+")");
+						Node node = graph.createNode(currentNode.stringValue());
 
-
+						//Ajout du label
+						if(bindingSet.getValue("label")!=null){
+							node.setLabel(bindingSet.getValue("label").stringValue());
+						}
+						
+						//pour chaque uri on récupère tous les attributs et objets
+						List<NodeAttribute> datas=getTriplets(currentNode.stringValue());
+						for (NodeAttribute data : datas) {
+							String property=data.getPredicat();
+							int index=property.contains("#")?property.lastIndexOf("#"):property.lastIndexOf("/");
+							String label=property.substring(index+1);
+							Attribute at=new AttributeListImpl(AttributeClass.NODE).createAttribute(property,AttributeType.STRING,label);
+							node.getAttributeValues().addValue(at, data.getValue());
+							node.getShapeEntity().setNodeShape(NodeShape.DIAMOND).setUri(bindingSet.getValue("node").stringValue());
+						}
+						
 						//Ajout des dates si elles existent
 						try {
 							if(bindingSet.getValue("start")!=null){
@@ -119,30 +147,16 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 								node.setEndValue(formatter.parse(bindingSet.getValue("end").stringValue()));
 							}
 						}catch (ParseException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
-						}
-
-						//Ajout du label
-						if(bindingSet.getValue("label")!=null){
-							node.setLabel(bindingSet.getValue("label").stringValue());
-						}
-						//pour chaque uri on récupère tous les attributs et objets
-						List<NodeAttribute> datas=getTriplets(bindingSet.getValue("node").stringValue());
-						for (NodeAttribute data : datas) {
-							String property=data.getPredicat();
-							int index=property.contains("#")?property.lastIndexOf("#"):property.lastIndexOf("/");
-							String label=property.substring(index+1);
-							Attribute at=new AttributeListImpl(AttributeClass.NODE).createAttribute(property,AttributeType.STRING,label);
-							node.getAttributeValues().addValue(at, data.getValue());
-							node.getShapeEntity().setNodeShape(NodeShape.DIAMOND).setUri(bindingSet.getValue("node").stringValue());
 						}
 
 					}
 				}
 
 			});
-
+			log.debug("End Nodes");
+			
+			
 			//On récupère les edges
 			this.addEdges(graph,c);
 		}
@@ -157,7 +171,7 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 			log.debug("path to gexf file ->"+f.getAbsolutePath());
 			log.info("Done");
 		} catch (IOException e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 		}
 
 	}
@@ -173,11 +187,27 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 
 		List<String> properties=new ArrayList<String>();
 		try(RepositoryConnection c = repo.getConnection()) {
-			String sparqlRequest=SparqlRequest.LIST_LITERAL_PROPERTIES
-					.replaceAll(
-							"_FILTER_", 
-							" FILTER(?p!=legilux:dateEntryInForce && ?p!=legilux:dateDocument && ?p!= legilux:dateNoLongerInForce)"
-							);
+			String sparqlRequest=SparqlRequest.LIST_LITERAL_PROPERTIES;
+			
+			if(args.getEndDateProperty() != null || args.getStartDateProperty() != null) {
+				List<String> filters = new ArrayList<String>();
+				if(args.getStartDateProperty() != null) {
+					filters.add("?p != <"+args.getStartDateProperty()+">");
+				}
+				if(args.getEndDateProperty() != null) {
+					filters.add("?p != <"+args.getEndDateProperty()+">");
+				}
+				
+				sparqlRequest=sparqlRequest.replaceAll(
+						"_FILTER_", 
+						" FILTER("+String.join(" && ", filters)+")"
+						);
+			} else {
+				sparqlRequest=sparqlRequest.replaceAll(
+						"_FILTER_", 
+						""
+				);
+			}
 
 			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
@@ -254,10 +284,26 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 	private List<NodeAttribute> getTriplets(String uri) {
 		log.debug("Traitement des triplets");
 		String sparqlRequest=SparqlRequest.QUERY_READ_RESOURCE_LITERALS.replaceAll("_node", uri);
-		sparqlRequest=sparqlRequest.replaceAll(
-				"_FILTER_", 
-				" FILTER(?predicat!=legilux:dateEntryInForce && ?predicat!=legilux:dateDocument && ?predicat!= legilux:dateNoLongerInForce)"
-				);
+		
+		if(args.getEndDateProperty() != null || args.getStartDateProperty() != null) {
+			List<String> filters = new ArrayList<String>();
+			if(args.getStartDateProperty() != null) {
+				filters.add("?predicat != <"+args.getStartDateProperty()+">");
+			}
+			if(args.getEndDateProperty() != null) {
+				filters.add("?predicat != <"+args.getEndDateProperty()+">");
+			}
+			
+			sparqlRequest=sparqlRequest.replaceAll(
+					"_FILTER_", 
+					" FILTER("+String.join(" && ", filters)+")"
+					);
+		} else {
+			sparqlRequest=sparqlRequest.replaceAll(
+					"_FILTER_", 
+					""
+			);
+		}		
 
 		List<NodeAttribute> list=new ArrayList<NodeAttribute>();
 		try(RepositoryConnection c = repo.getConnection()) {
