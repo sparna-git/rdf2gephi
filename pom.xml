@@ -4,13 +4,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<groupId>fr.sparna.rdf.gexf</groupId>
-	<artifactId>GEXF</artifactId>
+	<artifactId>rdf2gexf</artifactId>
 	<version>0.4</version>
 	<packaging>jar</packaging>
 
 	
 
-	<name>GEXF parser</name>
+	<name>RDF to GEXF parser</name>
 	<description></description>
 
 	<properties>
