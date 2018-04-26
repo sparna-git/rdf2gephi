@@ -27,27 +27,18 @@ public class GexfCli {
 		private String config;
 		
 		@Parameter(
-				names = { "-start", "--dateEntryInForce" },
-				description = "Date de mise en vigueur",
+				names = { "-s", "--startProperty" },
+				description = "URI de la propriété de début",
 				required = false
 		)
-		private boolean dateEntryInForce;
+		private String startDateProperty;
 		
 		@Parameter(
-				names = { "-end", "--dateNoLongerInForce" },
-				description = "Date de fin",
+				names = { "-e", "--endProperty" },
+				description = "URI de la propriété de fin",
 				required = false
 		)
-		private boolean dateNoLongerInForce;
-		
-
-		public boolean isDateNoLongerInForce() {
-			return this.dateNoLongerInForce;
-		}
-		
-		public boolean isDateEntryInForce() {
-			return this.dateEntryInForce;
-		}
+		private String endDateProperty;
 		
 		public String getInput() {
 			return this.input;
@@ -60,4 +51,13 @@ public class GexfCli {
 		public String getOutput() {
 			return this.output;
 		}
+
+		public String getStartDateProperty() {
+			return startDateProperty;
+		}
+
+		public String getEndDateProperty() {
+			return endDateProperty;
+		}
+
 }

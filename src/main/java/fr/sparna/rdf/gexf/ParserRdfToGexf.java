@@ -87,20 +87,21 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 
 		//requête sparql 
 		String sparqlRequest=SparqlRequest.QUERY_LIST_NODES;
-		if(args.isDateEntryInForce()){
-			sparqlRequest=sparqlRequest.replaceAll("_OPTIONSTART_", "OPTIONAL{?node legilux:dateEntryInForce ?start.}");
+		if(args.getStartDateProperty() != null){
+			sparqlRequest=sparqlRequest.replaceAll("_OPTIONSTART_", "OPTIONAL{?node <"+args.getStartDateProperty()+"> ?start.}");
 		}else{
 			sparqlRequest=sparqlRequest.replaceAll("_OPTIONSTART_", " ");
 		}
-		if(args.isDateEntryInForce()){
-			sparqlRequest=sparqlRequest.replaceAll("_OPTIONEND_", "OPTIONAL{?node legilux:dateNoLongerInForce ?end.}");
+		
+		if(args.getEndDateProperty() != null){
+			sparqlRequest=sparqlRequest.replaceAll("_OPTIONEND_", "OPTIONAL{?node <"+args.getEndDateProperty()+"> ?end.}");
 		}else{
 			sparqlRequest=sparqlRequest.replaceAll("_OPTIONEND_", " ");
 		}
 		SimpleDateFormat formatter=new SimpleDateFormat("yyyy-mm-dd");
 		//Création des noeuds
 		try(RepositoryConnection c = repo.getConnection()) {
-			log.debug("Traitement de  noeuds");
+			log.debug("Traitement des  noeuds");
 			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {					
@@ -199,24 +200,27 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 	 */
 	private void addEdges(Graph graph, RepositoryConnection c) throws FileNotFoundException, IOException {
 
-		log.debug("récupération des edges");
+		log.debug("Edges");
 		//Attributes
 		AttributeList attrList = new AttributeListImpl(AttributeClass.EDGE);
 		Attribute at=attrList.createAttribute("type",AttributeType.STRING,"type");
 		graph.getAttributeLists().add(attrList);
+		
 		String sparqlRequest=SparqlRequest.LIST_EDGES;
-
 		Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
+			
+			int counter=0;
+			
 			@Override
 			public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {
-				if(bindingSet.getValue("s")!=null){
+				if(bindingSet.getValue("s")!=null) {
+					log.debug("Edge : "+counter++);
 					String predicat=bindingSet.getValue("p").stringValue();
 					int index=predicat.contains("#")?predicat.lastIndexOf("#"):predicat.lastIndexOf("/");
 					String label=predicat.substring(index+1);
-					Edge edge=null;
 
 					try {
-						edge = graph.getNode(bindingSet.getValue("s").stringValue())
+						Edge edge = graph.getNode(bindingSet.getValue("s").stringValue())
 								.connectTo(
 										UUID.randomUUID().toString(),
 										label,
@@ -234,12 +238,11 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 
 					} catch (Exception e) {
 						log.debug("warning -> "+e.getMessage());
-
 					}
 				}	
 			}
 		});
-		log.debug("Fin du traitement des edges");
+		log.debug("Fin edges");
 	}
 
 	/**
@@ -267,7 +270,6 @@ public class ParserRdfToGexf implements RdfToGexfIfc{
 						node.setSubject(bindingSet.getValue("node").stringValue());
 						node.setPredicat(bindingSet.getValue("predicat").stringValue());
 						node.setValue(bindingSet.getValue("object").stringValue());
-						//System.out.println(bindingSet.getValue("predicat").stringValue());
 						list.add(node);			
 					}
 				}

@@ -47,13 +47,13 @@ public class SparqlRequest {
 	
 
 	public final static String LIST_EDGES=""
-			+ "PREFIX dcterms: <http://purl.org/dc/terms/> "+"\n"+
-			"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "+"\n"
+			+ "PREFIX dcterms: <http://purl.org/dc/terms/> "+"\n"
+			+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "+"\n"
 			+ "select distinct ?s ?p ?o"+"\n"
 			+ "where { "+"\n"
 			+ " ?s ?p ?o . " +"\n"
-			+"FILTER(?p != rdf:type && isIRI(?o))"+"\n"
-			+"}";
+			+ " FILTER(?p != rdf:type && isIRI(?o))"+"\n"
+			+ "}";
 		
 	public final static String QUERY_READ_RESOURCE_LITERALS=""
 			+ "PREFIX dcterms: <http://purl.org/dc/terms/> "+
