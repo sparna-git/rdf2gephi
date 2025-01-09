@@ -50,7 +50,7 @@ public class Main {
 			System.exit(-1);
 		} catch (ParameterException e) {
 			System.err.println(e.getMessage());
-			jc.usage(jc.getParsedCommand());
+			jc.usage();
 			System.exit(-1);
 		} 
 
