@@ -1,4 +1,4 @@
-package fr.sparna.rdf.gexf;
+package fr.sparna.rdf.gexf.app;
 
 import com.beust.jcommander.Parameter;
 

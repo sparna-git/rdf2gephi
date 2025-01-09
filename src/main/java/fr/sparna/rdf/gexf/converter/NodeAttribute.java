@@ -1,4 +1,4 @@
-package fr.sparna.rdf.gexf;
+package fr.sparna.rdf.gexf.converter;
 
 public class NodeAttribute {
 

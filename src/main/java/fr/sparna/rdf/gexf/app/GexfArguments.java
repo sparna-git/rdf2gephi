@@ -1,12 +1,12 @@
-package fr.sparna.rdf.gexf;
+package fr.sparna.rdf.gexf.app;
 
 import com.beust.jcommander.Parameter;
 
-public class GexfCli {
+public class GexfArguments {
 	
 		@Parameter(
 				names = { "-i", "--input" },
-				description = "Chemin du fichier RDF d'entrée",
+				description = "Path to RDF input file. Can be repeated to read multiple files",
 				required = true,
 				variableArity = true
 		)
@@ -14,28 +14,28 @@ public class GexfCli {
 		
 		@Parameter(
 				names = { "-o", "--output" },
-				description = "Chemin vers le fichier où sera enregistré la sortie",
+				description = "Path to GEXF output file",
 				required = true
 		)
 		private String output;
 	
 		@Parameter(
-				names = { "-c", "--config" },
-				description = "Chemin vers le fichier config.properties définissant les propriétés à prendre en compte",
+				names = { "-w", "--weight" },
+				description = "Path to a properties file associating properties to weights",
 				required = false
 		)
 		private String config;
 		
 		@Parameter(
-				names = { "-s", "--startProperty" },
-				description = "URI de la propriété de début",
+				names = { "-s", "--startDateProperty" },
+				description = "URI of the property holding the start date of entities",
 				required = false
 		)
 		private String startDateProperty;
 		
 		@Parameter(
-				names = { "-e", "--endProperty" },
-				description = "URI de la propriété de fin",
+				names = { "-e", "--endDateProperty" },
+				description = "URI of the property in the knowledge grapg holding the end date of entities",
 				required = false
 		)
 		private String endDateProperty;

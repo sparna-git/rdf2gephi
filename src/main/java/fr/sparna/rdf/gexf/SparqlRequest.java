@@ -22,7 +22,8 @@ public class SparqlRequest {
 			+ "?s ?p ?node. "
 			+"  FILTER(?p != rdf:type && isIRI(?node)) "
 			+ "}"
-			+ " OPTIONAL {?node rdfs:label ?label.} "
+			+ " OPTIONAL {?node rdfs:label ?rdfsLabel.} "
+			+ " BIND(IF(bound(?rdfsLabel),?rdfsLabel,STR(?node)) AS ?label)"
 			+ "_OPTIONSTART_"
 			+ "_OPTIONEND_"
 			+ 
@@ -55,7 +56,7 @@ public class SparqlRequest {
 			+ " FILTER(?p != rdf:type && isIRI(?o))"+"\n"
 			+ "}";
 		
-	public final static String QUERY_READ_RESOURCE_LITERALS=""
+	public final static String QUERY_READ_RESOURCE_LITERALS_AND_TYPE=""
 			+ "PREFIX dcterms: <http://purl.org/dc/terms/> "
 			+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
 			+ "select distinct ?node ?predicat ?object "

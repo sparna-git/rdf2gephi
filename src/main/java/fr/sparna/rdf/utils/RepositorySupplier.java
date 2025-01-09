@@ -1,4 +1,4 @@
-package fr.sparna.rdf.gexf;
+package fr.sparna.rdf.utils;
 
 import java.io.IOException;
 import java.io.InputStream;

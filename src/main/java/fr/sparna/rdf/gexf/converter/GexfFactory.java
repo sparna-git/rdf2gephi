@@ -1,13 +1,16 @@
-package fr.sparna.rdf.gexf;
+package fr.sparna.rdf.gexf.converter;
 
 import java.util.Calendar;
 
 import it.uniroma1.dis.wsngroup.gexf4j.core.Gexf;
 import it.uniroma1.dis.wsngroup.gexf4j.core.impl.GexfImpl;
 
-public class GexfClass{
+public class GexfFactory {
 
-	public static Gexf getGexf(){
+	/**
+	 * @return a new Gexf instance
+	 */
+	public static Gexf newGexf() {
 
 		// création du gexf
 		Gexf gexf = new GexfImpl();

@@ -1,4 +1,4 @@
-package fr.sparna.rdf.gexf;
+package fr.sparna.rdf.gexf.app;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.MissingCommandException;
@@ -8,18 +8,18 @@ public class Main {
 
 	enum COMMAND {		
 
-		GEXF(new GexfCli(), new ParserRdfToGexf());
+		GEXF(new GexfArguments(), new GexfCommand());
 
 
-		private RdfToGexfIfc command;
+		private GexfCommand command;
 		private Object arguments;
 
-		private COMMAND(Object arguments, RdfToGexfIfc command) {
+		private COMMAND(Object arguments, GexfCommand command) {
 			this.command = command;
 			this.arguments = arguments;
 		}
 
-		public RdfToGexfIfc getCommand() {
+		public GexfCommand getCommand() {
 			return command;
 		}
 
@@ -68,9 +68,9 @@ public class Main {
 			System.exit(-1);
 		}
 		// executes the command with the associated arguments
-		COMMAND.valueOf(jc.getParsedCommand().toUpperCase()).getCommand().rdfToGexf(
-				COMMAND.valueOf(jc.getParsedCommand().toUpperCase()).getArguments()
-				);
+		COMMAND.valueOf(jc.getParsedCommand().toUpperCase()).getCommand().execute(
+			COMMAND.valueOf(jc.getParsedCommand().toUpperCase()).getArguments()
+		);
 
 	}
 
