@@ -2,31 +2,22 @@ package fr.sparna.rdf.gexf.app;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Properties;
 import org.eclipse.rdf4j.repository.Repository;
-import org.eclipse.rdf4j.rio.RDFFormat;
-import org.eclipse.rdf4j.rio.Rio;
 
 import fr.sparna.rdf.gexf.converter.RdfToGexfParserImpl;
-import fr.sparna.rdf.utils.RepositorySupplier;
+import fr.sparna.rdf.rdf4j.toolkit.repository.RepositoryBuilder;
+import fr.sparna.rdf.rdf4j.toolkit.repository.RepositoryBuilderFactory;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Gexf;
 
-public class GexfCommand {
+public class GexfCommand implements CommandIfc {
 
-	public void execute(Object o) throws FileNotFoundException, IOException {
-
+	public void execute(Object o) throws Exception {
 
 		//chargement du fichier rdf et stockage dans le repository
 		GexfArguments args=(GexfArguments)o;
-		RepositorySupplier repositorySupplier=new RepositorySupplier(
-				new FileInputStream(args.getInput()),
-				Rio.getParserFormatForFileName(args.getInput())
-				.orElse(RDFFormat.RDFXML)
-				);
-
-		Repository repository = repositorySupplier.getRepository();
+		RepositoryBuilder builder = RepositoryBuilderFactory.fromString(args.getInput());
+		Repository repository = builder.get();
 
 		//Chargement du fichier de config
 		Properties weights = null;
@@ -35,8 +26,13 @@ public class GexfCommand {
 			weights.load(new FileInputStream(new File(args.getConfig())));
 		}
 
-		RdfToGexfParserImpl parser = new RdfToGexfParserImpl(args.getStartDateProperty(), args.getEndDateProperty(), weights);
-		Gexf gexf = parser.rdfToGexf(repository);
+		RdfToGexfParserImpl parser = new RdfToGexfParserImpl();
+		Gexf gexf = parser.rdfToGexf(
+			repository,
+			args.getStartDateProperty(),
+			args.getEndDateProperty(),
+			weights
+		);
 
 		File f = new File(args.getOutput());
 		RdfToGexfParserImpl.writeGexf(gexf, f);

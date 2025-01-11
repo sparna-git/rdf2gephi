@@ -8,18 +8,18 @@ public class Main {
 
 	enum COMMAND {		
 
-		GEXF(new GexfArguments(), new GexfCommand());
+		GEXF(new GexfArguments(), new GexfCommand()),
+		FROMSPARQL(new FromSparqlArguments(), new FromSparqlCommand());
 
-
-		private GexfCommand command;
+		private CommandIfc command;
 		private Object arguments;
 
-		private COMMAND(Object arguments, GexfCommand command) {
+		private COMMAND(Object arguments, CommandIfc command) {
 			this.command = command;
 			this.arguments = arguments;
 		}
 
-		public GexfCommand getCommand() {
+		public CommandIfc getCommand() {
 			return command;
 		}
 
@@ -28,7 +28,6 @@ public class Main {
 		}		
 	}
 	public static void main(String[] args) throws Exception {
-		// TODO Auto-generated method stub
 		Main main = new Main();
 		main.run(args);
 	}

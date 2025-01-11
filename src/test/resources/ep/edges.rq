@@ -1,0 +1,12 @@
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX org: <http://www.w3.org/ns/org#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX epvoc: <https://data.europarl.europa.eu/def/epvoc#>
+SELECT ?subject ?edge ?object
+WHERE {
+	?subject a foaf:Person .
+	?subject org:hasMembership ?membership .
+	?membership org:organization ?object .
+	?membership epvoc:membershipClassification <https://data.europarl.europa.eu/def/ep-entities/EU_POLITICAL_GROUP> .
+	BIND(org:memberOf AS ?edge)
+}

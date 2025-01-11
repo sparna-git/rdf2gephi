@@ -2,6 +2,7 @@ package fr.sparna.rdf.gexf.converter;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Properties;
 
 import org.eclipse.rdf4j.repository.Repository;
 
@@ -15,6 +16,19 @@ public interface RdfToGexfParserIfc {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public Gexf rdfToGexf(Repository repository) throws FileNotFoundException, IOException ;
+	public Gexf rdfToGexf(
+		Repository repository,
+		String startDateProperty,
+		String endDateProperty,
+		Properties propertyWeights
+	) throws FileNotFoundException, IOException ;
+
+
+	public Gexf buildGexf(
+		Repository repo,
+		String edgesQuery,
+		String labelsQuery,
+		String attributesQuery
+	) throws FileNotFoundException, IOException ;
 
 }

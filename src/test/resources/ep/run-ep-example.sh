@@ -1,0 +1,1 @@
+java -jar target/rdf2gexf-0.4-onejar.jar fromsparql -i src/test/resources/ep/data -e src/test/resources/ep/edges.rq -l src/test/resources/ep/labels.rq -a src/test/resources/ep/attributes.rq -o output_mep.gexf

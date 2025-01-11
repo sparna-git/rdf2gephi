@@ -12,11 +12,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import org.apache.lucene.document.StringField;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.query.AbstractTupleQueryResultHandler;
 import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.query.TupleQueryResultHandler;
 import org.eclipse.rdf4j.query.TupleQueryResultHandlerException;
 import org.eclipse.rdf4j.repository.Repository;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
@@ -37,7 +43,6 @@ import it.uniroma1.dis.wsngroup.gexf4j.core.data.AttributeList;
 import it.uniroma1.dis.wsngroup.gexf4j.core.data.AttributeType;
 import it.uniroma1.dis.wsngroup.gexf4j.core.impl.StaxGraphWriter;
 import it.uniroma1.dis.wsngroup.gexf4j.core.impl.data.AttributeListImpl;
-import it.uniroma1.dis.wsngroup.gexf4j.core.viz.NodeShape;
 
 public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 
@@ -50,15 +55,224 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 	
 	private transient Repository repo;
 
-	public RdfToGexfParserImpl(String startDateProperty, String endDateProperty, Properties propertyWeights) {
-		this.startDateProperty = startDateProperty;
-		this.endDateProperty = endDateProperty;
-		this.propertyWeights = propertyWeights;
+	@Override
+	public Gexf buildGexf(Repository repo, String edgesQuery, String labelsQuery, String attributesQuery) throws FileNotFoundException, IOException {
+
+		// création du graphe
+		Gexf gexf=GexfFactory.newGexf();
+		Graph graph =gexf.getGraph();
+		graph.setDefaultEdgeType(EdgeType.DIRECTED);	
+		
+		//Attributes
+		AttributeList attrList = new AttributeListImpl(AttributeClass.EDGE);
+		Attribute at = attrList.createAttribute("type",AttributeType.STRING,"type");
+		graph.getAttributeLists().add(attrList);
+
+		try(RepositoryConnection c = repo.getConnection()) {
+
+			class EdgesQueryResultHandler extends AbstractTupleQueryResultHandler {
+
+				public int counter = 0;
+				public Map<String, Node> nodesMap = new HashMap<String, Node>();
+
+				@Override
+				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {	
+					if(
+						bindingSet.hasBinding("subject")
+						&&
+						bindingSet.hasBinding("edge")
+						&&
+						bindingSet.hasBinding("object")
+					) {
+
+						// subject
+						Value subject = bindingSet.getBinding("subject").getValue();
+						Node nodeS = nodesMap.get(subject.stringValue());
+						if(nodeS == null) {
+							nodeS = graph.createNode(subject.stringValue());
+							// store in cache
+							nodesMap.put(subject.stringValue(), nodeS);
+						}
+
+						// object
+						Value object = bindingSet.getBinding("object").getValue();
+						Node nodeO = nodesMap.get(object.stringValue());
+						if(nodeO == null) {
+							nodeO = graph.createNode(object.stringValue());
+							// store in cache
+							nodesMap.put(object.stringValue(), nodeO);
+						}
+
+						// edge
+						String edgeUri = bindingSet.getBinding("edge").getValue().stringValue();
+						int index = edgeUri.contains("#")?edgeUri.lastIndexOf("#"):edgeUri.lastIndexOf("/");
+						String label=edgeUri.substring(index+1);
+						
+						if(!nodeS.hasEdgeTo(nodeO.getId())) {
+							log.debug("Edge : "+counter+" "+subject.stringValue()+" --"+label+"--> "+object.stringValue());
+							Edge edge = nodeS.connectTo(
+								UUID.randomUUID().toString(),
+								label,
+								nodeO
+							).setEdgeType(EdgeType.DIRECTED);
+							
+							// set edge type attribute
+							edge.getAttributeValues().addValue(at, label);
+						}
+						counter++;						
+						
+					} else {
+						log.error("binding set without expected bindings ('subject', 'edge', 'object'): "+bindingSet);
+					}
+				}
+			}
+
+			// populate with edges
+			log.info("building edges with query ...");
+			log.info(edgesQuery);
+			EdgesQueryResultHandler myEdgesHandler = new EdgesQueryResultHandler();
+			Perform.on(c).select(edgesQuery, myEdgesHandler);
+			log.info("Done building "+myEdgesHandler.counter+" edges");
+
+			// now populate with labels
+			class LabelsQueryResultHandler extends AbstractTupleQueryResultHandler {
+
+				public int counter = 0;
+
+				@Override
+				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {	
+					if(
+						bindingSet.hasBinding("this")
+						&&
+						bindingSet.hasBinding("label")
+					) {
+
+						// subject
+						Value subject = bindingSet.getBinding("this").getValue();
+						Node node = myEdgesHandler.nodesMap.get(subject.stringValue());
+
+						// just in case
+						if(node != null) {
+							//Ajout du label
+							String label = bindingSet.getBinding("label").getValue().stringValue();
+							log.debug("Setting label of : "+node.getId()+" "+label);
+							node.setLabel(label);
+						}
+
+						counter++;						
+					} else {
+						log.error("binding set without expected bindings ('this', 'label'): "+bindingSet);
+					}
+				}
+			}
+
+			log.info("building labels with query ...");
+
+			// process in batches
+			List<String> nodeList = new ArrayList<>(myEdgesHandler.nodesMap.keySet());
+
+			LabelsQueryResultHandler myLabelsHandler = new LabelsQueryResultHandler();
+			executeInBatch(labelsQuery, c, myLabelsHandler, nodeList);
+			log.info("done populating labels : "+myLabelsHandler.counter+" labels");	
+			
+
+			// now populate with attributes
+			class AttributesQueryResultHandler extends AbstractTupleQueryResultHandler {
+
+				public int counter = 0;
+
+				@Override
+				public void startQueryResult(List<String> bindingNames) throws TupleQueryResultHandlerException {
+					// add all attributes to the graph
+					AttributeList attributeList = new AttributeListImpl(AttributeClass.NODE);
+					for (String property : bindingNames) {
+						if(!property.equals("this")) {						
+							log.info("Adding property "+property);
+							attributeList.createAttribute(property, AttributeType.STRING, property);
+						}
+					}
+					//Ajout de la liste des attributs au graphe
+					graph.getAttributeLists().add(attributeList);
+				}
+
+
+
+				@Override
+				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {	
+					if(
+						bindingSet.hasBinding("this")
+					) {
+
+						// subject
+						Value subject = bindingSet.getBinding("this").getValue();
+						Node node = myEdgesHandler.nodesMap.get(subject.stringValue());
+
+						if(node != null) {
+							for (String aBinding : bindingSet.getBindingNames()) {
+								// skip the subject
+								if(aBinding.equals("this")) {
+									continue;
+								}
+
+								// get the value
+								Value value = bindingSet.getBinding(aBinding).getValue();
+								Attribute at=new AttributeListImpl(AttributeClass.NODE).createAttribute(aBinding,AttributeType.STRING,aBinding);
+								node.getAttributeValues().addValue(at, value.stringValue());
+								log.debug("Setting attribute of : "+node.getId()+" "+aBinding+"="+value.stringValue());							
+							}
+						}
+
+						counter++;						
+					} else {
+						log.error("binding set without expected bindings ('this'): "+bindingSet);
+					}
+				}
+			}
+			AttributesQueryResultHandler myAttributesHandler = new AttributesQueryResultHandler();
+			executeInBatch(attributesQuery, c, myAttributesHandler, nodeList);
+			log.info("done populating attributes : "+myAttributesHandler.counter+" nodes populated with attributes");
+			
+			log.info(myEdgesHandler.counter+" edges");
+			log.info(myLabelsHandler.counter+" labels");
+			log.info(myLabelsHandler.counter+" nodes populated with attributes");
+		}
+
+			
+
+		return gexf;
+
+	}
+
+	private void executeInBatch(String query, RepositoryConnection c, TupleQueryResultHandler handler, List<String> nodeList) {
+		// process in batches
+		int BATCH_SIZE = 100;
+
+		for (int i = 0; i < nodeList.size(); i += BATCH_SIZE) {
+			int end = Math.min(i + BATCH_SIZE, nodeList.size());
+			List<String> batch = nodeList.subList(i, end);
+
+			String valuesClause = "VALUES ?this { <"+batch.stream().collect(Collectors.joining("> <"))+"> }";
+
+			// insert after final "}"
+			int lastIndex = query.lastIndexOf("}");
+			if (lastIndex == -1) {
+				throw new RuntimeException("Invalid labels query");
+			}
+
+			String finalQuery = query.substring(0, lastIndex) + valuesClause + query.substring(lastIndex);
+			
+			log.info("batch "+i);
+			log.info(finalQuery);
+			Perform.on(c).select(finalQuery, handler);
+		}	
 	}
 
 	@Override
-	public Gexf rdfToGexf(Repository repo) throws FileNotFoundException, IOException {
+	public Gexf rdfToGexf(Repository repo, String startDateProperty, String endDateProperty, Properties propertyWeights) throws FileNotFoundException, IOException {
 
+		this.startDateProperty = startDateProperty;
+		this.endDateProperty = endDateProperty;
+		this.propertyWeights = propertyWeights;
 		this.repo=repo;
 		
 		// création du graphe
