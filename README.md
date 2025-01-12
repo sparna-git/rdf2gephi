@@ -180,6 +180,10 @@ TODO
 5. Click on "Show node labels" button
 6. Go in "Preview" tab, regenerate the preview, export as SVG/PNG/PDF
 
+This is illustrated in the screencast below:
+
+![](docs/gallery/rdf-in-gephi.webm)
+
 ## Gallery
 
 EU in-force legislation from Cellar SPARQL endpoint. Links shows the "based_on" links (acts legally based on another act). ELI identifiers of acts that are most often used as basis are shown
