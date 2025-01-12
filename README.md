@@ -165,10 +165,17 @@ WHERE {
 }
 ```
 
+
+#### dates query
+
+TODO
+
+
 ## Typical actions in Gephi to view your RDF graph
 
-### Apply a spatialisation algorithm
-
-Use "Force Atlas 2".
-
-### Give colors based on types
+1. Apply a layout algorithm : Use "Force Atlas 2".
+2. Give colors to nodes based on the type attribute : Appearance > Nodes > Partition > Choose an attribute
+3. Size the nodes based on (incoming or outgoing) degree : Appearance > Size icon > Ranking > Degree
+4. Print labels only of biggest nodes : Filter > Topology > Degree Range > drag and drop to Queries below > set the parameters. Then click on filter. Then click on icon above "hide node/edges labels if not in filtered graph" 
+5. Click on "Show node labels" button
+6. Go in "Preview" tab, regenerate the preview, export as SVG/PNG/PDF
