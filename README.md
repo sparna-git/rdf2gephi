@@ -1,4 +1,4 @@
-# rdf2gexf
+# RDF-to-Gephi
 
 Converts RDF knowledge graphs to a Gephi gexf project file that can be opened in Gephi. Supports single RDF file, multiple files in a folder, or remote SPARQL endpoint URL. Can work either in a _"direct and simple conversion"_ mode, turning triples into edges, or using a set of SPARQL queries to define exactly the structure of the nodes and edges that should appear in the Gexf file.
 
