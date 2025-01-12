@@ -1,7 +1,7 @@
 # RDF-to-Gephi
 
 Converts RDF knowledge graphs to a [Gephi](https://gephi.org/) GEXF file that can be opened in Gephi. GEXF stands for [Graph Exchange XML Format](https://gexf.net/).
-Supports single RDF file, multiple files in a folder, or remote SPARQL endpoint URL. Can work either in a _"direct and simple conversion"_ mode, turning triples into edges, or using a set of SPARQL queries to define exactly the structure of the nodes and edges that should appear in the Gexf file.
+Supports single RDF file, multiple files in a folder, or remote SPARQL endpoint URL. Can work either in a _"direct and simple conversion"_ mode, turning triples into edges, or using a set of SPARQL queries to define exactly the scope and structure of the nodes and edges that should appear in the Gexf file.
 
 ## How to run
 
@@ -12,7 +12,7 @@ Supports single RDF file, multiple files in a folder, or remote SPARQL endpoint 
 5. Run a conversion command, typically the following:
 
 ```sh
-java -jar target/rdf2gexf-1.0-onejar.jar sparql \
+java -jar rdf2gephi-1.0-onejar.jar sparql \
 --input http://my.sparql.endpoint \
 --edges queries/edges.rq \
 --attributes queries/attributes.rq \
@@ -28,12 +28,36 @@ java -jar target/rdf2gexf-1.0-onejar.jar sparql \
 
 ### direct convertion (discouraged)
 
+Converts RDF data to GEXF format directly. All literals are  considered as attributes, and all triples as edges, except `rdf:type`. `rdfs:label` is used as label.
+
+The full options of the command are:
+
+```
+    direct      Converts RDF data to GEXF format directly. All literals are 
+            considered as attributes, and all triples as edges, except 
+            rdf:type. rdfsl:label is used as label.
+      Usage: direct [options]
+        Options:
+          -e, --endDateProperty
+            URI of the property in the knowledge grapg holding the end date of 
+            entities 
+        * -i, --input
+            Path to RDF input file, or directory containing RDF files, or URL 
+            of a SPARQL endpoint.
+        * -o, --output
+            Path to GEXF output file
+          -s, --startDateProperty
+            URI of the property holding the start date of entities
+          -w, --weight
+            Path to a properties file associating properties to weights
+```
+
 ### SPARQL-based conversion (preferred)
 
 The `sparql` commands takes a set of SPARQL queries to build the structure of the Gephi graph. The command synopsis is the following:
 
 ```
-java -jar target/rdf2gexf-1.0-onejar.jar sparql \
+java -jar rdf2gephi-1.0-onejar.jar sparql \
 --input <file or directory or url of SPARQL endpoint> \
 --edges <SPARQL query file to create edges> \
 --attributes <SPARQL query file to create attributes> \
@@ -49,19 +73,23 @@ The full options of the command are:
         Options:
           -a, --attributes
             Path to the file containing the SPARQL query to retrieve 
-            attributes, e.g. 'sparql/attribute.rq'
+            attributes, e.g. 'sparql/attribute.rq'. The query MUST return 3 
+            columns: the first one is the subject, the second one is the 
+            attribute URI, the third one is the attribute value.
           -d, --dates
             Path to the file containing the SPARQL query to retrieve date 
             ranges, e.g. 'sparql/dates.rq'
         * -e, --edges
             Path to the file containing the SPARQL query to retrieve edges, 
-            e.g. 'sparql/edges.rq'
+            e.g. 'sparql/edges.rq'. The query MUST return the following 
+            variables: ?subject, ?edge, ?object
         * -i, --input
             Path to RDF input file, or directory containing RDF files, or URL 
             of a SPARQL endpoint.
           -l, --labels
             Path to the file containing the SPARQL query to retrieve labels, 
-            e.g. 'sparql/labels.rq'
+            e.g. 'sparql/labels.rq'. The query MUST return the following 
+            variables: ?subject, ?label
         * -o, --output
             Path to GEXF output file
 ```
@@ -171,6 +199,10 @@ WHERE {
 
 TODO
 
+## Support for dynamic graphs
+
+rdf2gephi supports the creation of dynamic graphs where we can see the evolution of the graph over time.
+TODO
 
 ## Typical actions in Gephi to view your RDF graph
 
