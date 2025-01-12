@@ -31,17 +31,24 @@ public class FromSparqlArguments {
 		@Parameter(
 				names = { "-l", "--labels" },
 				description = "Path to the file containing the SPARQL query to retrieve labels",
-				required = true
+				required = false
 		)
 		private File labelsQuery;
 
 		@Parameter(
 				names = { "-a", "--attributes" },
 				description = "Path to the file containing the SPARQL query to retrieve attributes",
-				required = true
+				required = false
 		)
 		private File attributesQuery;
 		
+		@Parameter(
+				names = { "-d", "--dates" },
+				description = "Path to the file containing the SPARQL query to retrieve date ranges",
+				required = false
+		)
+		private File datesQuery;
+
 		public String getInput() {
 			return this.input;
 		}
@@ -58,8 +65,14 @@ public class FromSparqlArguments {
 			return this.labelsQuery;
 		}
 
-		public File getAttributeQuery() {
-			return this.attributesQuery;
+		public File getAttributesQuery() {
+			return attributesQuery;
 		}
+
+		public File getDatesQuery() {
+			return datesQuery;
+		}
+
+		
 
 }

@@ -1,0 +1,14 @@
+# Default labels query
+# Selects the first present : foaf:name, rdfs:label in english or without language, skos:prefLabel in english or without language
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX org: <http://www.w3.org/ns/org#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX epvoc: <https://data.europarl.europa.eu/def/epvoc#>
+SELECT ?subject ?label
+WHERE {
+	OPTIONAL { ?subject foaf:name ?foafName }
+	OPTIONAL { ?subject skos:prefLabel ?prefLabel . FILTER(lang(?prefLabel) = "en" || lang(?prefLabel) = "") }
+	OPTIONAL { ?subject rdfs:label ?rdfsLabel . FILTER(lang(?rdfsLabel) = "en" || lang(?rdfsLabel) = "") }
+	
+	BIND(COALESCE(?foafName, ?prefLabel, ?rdfsLabel) AS ?label)
+}

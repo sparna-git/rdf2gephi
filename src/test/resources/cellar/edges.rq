@@ -1,0 +1,9 @@
+PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?subject ?edge ?object
+WHERE {
+    ?subject a cdm:resource_legal .
+    ?subject cdm:resource_legal_in-force true .
+    ?subject cdm:resource_legal_based_on_resource_legal ?object .
+    BIND(cdm:resource_legal_based_on_resource_legal as ?edge)
+}

@@ -28,7 +28,8 @@ public interface RdfToGexfParserIfc {
 		Repository repo,
 		String edgesQuery,
 		String labelsQuery,
-		String attributesQuery
+		String attributesQuery,
+		String datesQuery
 	) throws FileNotFoundException, IOException ;
 
 }

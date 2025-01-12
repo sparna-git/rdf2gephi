@@ -1,0 +1,12 @@
+PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?subject ?label
+WHERE {
+    ?subject cdm:resource_legal_eli ?eli .
+    BIND(STRAFTER(STR(?eli), "http://data.europa.eu/") AS ?label)
+
+    # ?expression cdm:expression_belongs_to_work ?subject .
+    # ?expression cdm:expression_uses_language <http://publications.europa.eu/resource/authority/language/ENG> .
+    # ?expression cdm:expression_title ?label .
+    # BIND(STRAFTER(STR(?subject), "http://publications.europa.eu/resource/cellar/") AS ?label)
+}

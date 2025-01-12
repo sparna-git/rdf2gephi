@@ -1,0 +1,6 @@
+# Default edges query
+# Selects all the triples in the graph
+SELECT ?subject ?edge ?object
+WHERE {
+	?subject ?edge ?object .
+}

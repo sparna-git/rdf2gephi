@@ -1,0 +1,7 @@
+PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+
+SELECT ?subject ?attribute ?value
+WHERE {
+    ?subject cdm:work_has_resource-type ?value .
+	BIND(cdm:work_has_resource-type AS ?attribute)
+}
