@@ -182,7 +182,7 @@ TODO
 
 This is illustrated in the screencast below:
 
-![](docs/gallery/rdf-in-gephi.webm)
+![](docs/gallery/rdf-in-gephi.mp4)
 
 ## Gallery
 
