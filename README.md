@@ -179,3 +179,9 @@ TODO
 4. Print labels only of biggest nodes : Filter > Topology > Degree Range > drag and drop to Queries below > set the parameters. Then click on filter. Then click on icon above "hide node/edges labels if not in filtered graph" 
 5. Click on "Show node labels" button
 6. Go in "Preview" tab, regenerate the preview, export as SVG/PNG/PDF
+
+## Gallery
+
+EU in-force legislation from Cellar SPARQL endpoint. Links shows the "based_on" links (acts legally based on another act). ELI identifiers of acts that are most often used as basis are shown
+
+![](docs/gallery/cellar.png)
