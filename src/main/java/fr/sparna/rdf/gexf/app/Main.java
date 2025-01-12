@@ -8,8 +8,8 @@ public class Main {
 
 	enum COMMAND {		
 
-		GEXF(new GexfArguments(), new GexfCommand()),
-		FROMSPARQL(new FromSparqlArguments(), new FromSparqlCommand());
+		DIRECT(new DirectGexfArguments(), new DirectGexfCommand()),
+		SPARQL(new FromSparqlArguments(), new FromSparqlCommand());
 
 		private CommandIfc command;
 		private Object arguments;

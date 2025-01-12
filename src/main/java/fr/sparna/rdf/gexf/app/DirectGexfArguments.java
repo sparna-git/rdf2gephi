@@ -2,11 +2,14 @@ package fr.sparna.rdf.gexf.app;
 
 import com.beust.jcommander.Parameter;
 
-public class GexfArguments {
+@com.beust.jcommander.Parameters(
+	commandDescription = "Converts RDF data to GEXF format directly. All literals are considered as attributes, and all triples as edges, except rdf:type. rdfsl:label is used as label."
+)
+public class DirectGexfArguments {
 	
 		@Parameter(
 				names = { "-i", "--input" },
-				description = "Path to RDF input file. Can be repeated to read multiple files",
+				description = "Path to RDF input file, or directory containing RDF files, or URL of a SPARQL endpoint.",
 				required = true,
 				variableArity = true
 		)

@@ -4,11 +4,14 @@ import java.io.File;
 
 import com.beust.jcommander.Parameter;
 
+@com.beust.jcommander.Parameters(
+	commandDescription = "Converts RDF data to GEXF format using SPARQL queries."
+)
 public class FromSparqlArguments {
 	
 		@Parameter(
 				names = { "-i", "--input" },
-				description = "Path to RDF input file. Can be repeated to read multiple files",
+				description = "Path to RDF input file, or directory containing RDF files, or URL of a SPARQL endpoint.",
 				required = true,
 				variableArity = true
 		)
@@ -23,28 +26,28 @@ public class FromSparqlArguments {
 		
 		@Parameter(
 				names = { "-e", "--edges" },
-				description = "Path to the file containing the SPARQL query to retrieve edges",
+				description = "Path to the file containing the SPARQL query to retrieve edges, e.g. 'sparql/edges.rq'. The query MUST return the following variables: ?subject, ?edge, ?object",
 				required = true
 		)
 		private File edgesQuery;
 
 		@Parameter(
 				names = { "-l", "--labels" },
-				description = "Path to the file containing the SPARQL query to retrieve labels",
+				description = "Path to the file containing the SPARQL query to retrieve labels, e.g. 'sparql/labels.rq'. The query MUST return the following variables: ?subject, ?label",
 				required = false
 		)
 		private File labelsQuery;
 
 		@Parameter(
 				names = { "-a", "--attributes" },
-				description = "Path to the file containing the SPARQL query to retrieve attributes",
+				description = "Path to the file containing the SPARQL query to retrieve attributes, e.g. 'sparql/attribute.rq'. The query MUST return 3 columns: the first one is the subject, the second one is the attribute URI, the third one is the attribute value.",
 				required = false
 		)
 		private File attributesQuery;
 		
 		@Parameter(
 				names = { "-d", "--dates" },
-				description = "Path to the file containing the SPARQL query to retrieve date ranges",
+				description = "Path to the file containing the SPARQL query to retrieve date ranges, e.g. 'sparql/dates.rq'",
 				required = false
 		)
 		private File datesQuery;

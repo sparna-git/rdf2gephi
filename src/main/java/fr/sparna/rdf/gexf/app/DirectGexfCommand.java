@@ -10,12 +10,12 @@ import fr.sparna.rdf.rdf4j.toolkit.repository.RepositoryBuilder;
 import fr.sparna.rdf.rdf4j.toolkit.repository.RepositoryBuilderFactory;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Gexf;
 
-public class GexfCommand implements CommandIfc {
+public class DirectGexfCommand implements CommandIfc {
 
 	public void execute(Object o) throws Exception {
 
 		//chargement du fichier rdf et stockage dans le repository
-		GexfArguments args=(GexfArguments)o;
+		DirectGexfArguments args=(DirectGexfArguments)o;
 		RepositoryBuilder builder = RepositoryBuilderFactory.fromString(args.getInput());
 		Repository repository = builder.get();
 
