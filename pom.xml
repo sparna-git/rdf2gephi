@@ -4,16 +4,16 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<groupId>fr.sparna.rdf.gexf</groupId>
-	<artifactId>rdf2gexf</artifactId>
-	<version>0.4</version>
+	<artifactId>rdf2gephi</artifactId>
+	<version>1.0-beta</version>
 	<packaging>jar</packaging>	
 
-	<name>RDF to GEXF converter</name>
+	<name>RDF to Gephi GEXF converter</name>
 	<description></description>
 
 	<properties>
-        <rdf4j-version>4.2.3</rdf4j-version>
-    </properties>
+    <rdf4j-version>4.2.3</rdf4j-version>
+  </properties>
 
 	 <build>
         <plugins>
