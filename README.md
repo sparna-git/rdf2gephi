@@ -21,7 +21,7 @@ java -jar target/rdf2gexf-1.0-onejar.jar sparql \
 ```
 
 6. Download and run [Gephi](https://gephi.org/)
-7. In Gephi, open the generated gexf file
+7. In Gephi, open the generated gexf file, and start applying layouts and colors to your graph to make it beautiful and tell your story
 
 
 ## Available commands and options
