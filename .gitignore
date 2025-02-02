@@ -3,3 +3,15 @@
 .settings
 .project
 target
+
+sparnatural-prototype-data/
+
+find-persons.csv
+
+sparnatural-prototype-data.ttl
+
+sparnatural-prototype-data-updated-2.ttl
+
+sparnatural-prototype-data-updated-2.zip
+
+sparnatural-prototype-data-updated.ttl
