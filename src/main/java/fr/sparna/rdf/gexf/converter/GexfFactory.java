@@ -10,15 +10,15 @@ public class GexfFactory {
 	/**
 	 * @return a new Gexf instance
 	 */
-	public static Gexf newGexf() {
+	public static Gexf newGexf(String creator, String description) {
 
 		// création du gexf
 		Gexf gexf = new GexfImpl();
 		Calendar date = Calendar.getInstance();
 		gexf.getMetadata()
 		.setLastModified(date.getTime())
-		.setCreator("SPARNA")
-		.setDescription("rdf to gexf");
+		.setCreator(creator)
+		.setDescription(description);
 		gexf.setVisualization(true);
 
 		return gexf;

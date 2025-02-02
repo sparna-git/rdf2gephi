@@ -6,8 +6,8 @@ import java.util.Properties;
 import org.eclipse.rdf4j.repository.Repository;
 
 import fr.sparna.rdf.gexf.converter.RdfToGexfParserImpl;
-import fr.sparna.rdf.rdf4j.toolkit.repository.RepositoryBuilder;
-import fr.sparna.rdf.rdf4j.toolkit.repository.RepositoryBuilderFactory;
+import fr.sparna.rdf.rdf4j.RepositoryBuilder;
+import fr.sparna.rdf.rdf4j.RepositoryBuilderFactory;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Gexf;
 
 public class DirectGexfCommand implements CommandIfc {

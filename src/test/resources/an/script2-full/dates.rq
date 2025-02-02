@@ -1,0 +1,9 @@
+PREFIX rico: <https://www.ica.org/standards/RiC/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?subject ?start ?end
+WHERE {
+    ?subject a ?type .
+    OPTIONAL { ?subject rico:beginningDate ?start . }
+    OPTIONAL { ?subject rico:endDate ?end . }
+}

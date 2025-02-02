@@ -1,0 +1,21 @@
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX org: <http://www.w3.org/ns/org#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX epvoc: <https://data.europarl.europa.eu/def/epvoc#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+SELECT ?subject ?attribute ?value
+WHERE {
+	# The rdf:type is always an attribute
+	{ 
+		?subject a ?value .
+		BIND(rdf:type AS ?attribute)
+	}
+	# Everything that is a skos:Concept is an attribute by default
+	UNION
+	{
+		?subject ?attribute ?concept .
+		?concept a skos:Concept .
+		OPTIONAL { ?concept skos:prefLabel ?prefLabelFr FILTER(lang(?prefLabelFr) = "fr") }
+		BIND(COALESCE(?prefLabelFr, ?concept) AS ?value)
+	}
+}

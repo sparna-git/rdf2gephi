@@ -9,7 +9,7 @@ public class Main {
 	enum COMMAND {		
 
 		DIRECT(new DirectGexfArguments(), new DirectGexfCommand()),
-		SPARQL(new FromSparqlArguments(), new FromSparqlCommand());
+		SPARQL(new SparqlArguments(), new SparqlCommand());
 
 		private CommandIfc command;
 		private Object arguments;

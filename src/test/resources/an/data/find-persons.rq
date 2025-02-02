@@ -1,0 +1,20 @@
+PREFIX rico: <https://www.ica.org/standards/RiC/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?rr ?notaire ?date ?docFormType ?nom ?occupation ?activity
+WHERE {
+    ?rr a ?type VALUES ?type { rico:RecordSet rico:RecordPart rico:Record } .
+    ?rr rico:hasProvenance ?provenancePersonne .
+    ?provenancePersonne a rico:Person .
+    ?provenancePersonne rdfs:label ?notaire .
+    ?rr rico:hasOrHadSubject ?person .
+    FILTER(isBlank(?person))
+    ?person a rico:Person .
+    ?person rdfs:label ?nom .    
+    ?rr rico:hasDocumentaryFormType/skos:prefLabel ?docFormType .
+    OPTIONAL { ?rr rico:date ?date . FILTER(datatype(?date) = xsd:date) }
+    OPTIONAL { ?person rico:hasOrHadOccupationOfType/skos:prefLabel ?occupation. FILTER(lang(?occupation) = "fr") }
+    OPTIONAL { ?person rico:performsOrPerformed/rico:hasActivityType/skos:prefLabel ?activity. FILTER(lang(?activity) = "fr") }
+}
+ORDER BY ?nom

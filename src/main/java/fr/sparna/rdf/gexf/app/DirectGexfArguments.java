@@ -31,14 +31,14 @@ public class DirectGexfArguments {
 		
 		@Parameter(
 				names = { "-s", "--startDateProperty" },
-				description = "URI of the property holding the start date of entities",
+				description = "URI of the property in the knowledge graph holding the start date of entities",
 				required = false
 		)
 		private String startDateProperty;
 		
 		@Parameter(
 				names = { "-e", "--endDateProperty" },
-				description = "URI of the property in the knowledge grapg holding the end date of entities",
+				description = "URI of the property in the knowledge graph holding the end date of entities",
 				required = false
 		)
 		private String endDateProperty;

@@ -2,6 +2,8 @@ package fr.sparna.rdf.gexf.converter;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.query.AbstractTupleQueryResultHandler;
 import org.eclipse.rdf4j.query.BindingSet;
@@ -19,11 +22,12 @@ import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import fr.sparna.rdf.rdf4j.toolkit.query.Perform;
+import fr.sparna.rdf.rdf4j.RepositoryConnections;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Edge;
 import it.uniroma1.dis.wsngroup.gexf4j.core.EdgeType;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Gexf;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Graph;
+import it.uniroma1.dis.wsngroup.gexf4j.core.Mode;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Node;
 import it.uniroma1.dis.wsngroup.gexf4j.core.data.Attribute;
 import it.uniroma1.dis.wsngroup.gexf4j.core.data.AttributeClass;
@@ -40,6 +44,7 @@ public class RdfToGexfParserBuilder {
 	private String labelsQuery;
 	private String attributesQuery;
 	private String datesQuery;
+	private String parentsQuery;
 
 	
 
@@ -48,20 +53,22 @@ public class RdfToGexfParserBuilder {
 		String edgesQuery,
 		String labelsQuery,
 		String attributesQuery,
-		String datesQuery
+		String datesQuery,
+		String parentsQuery
 	) {
 		this.repository = repository;
 		this.edgesQuery = edgesQuery;
 		this.labelsQuery = labelsQuery;
 		this.attributesQuery = attributesQuery;
 		this.datesQuery = datesQuery;
+		this.parentsQuery = parentsQuery;
 	}
 
 	public Gexf buildGexf() throws FileNotFoundException, IOException {
 
 		// création du graphe
-		Gexf gexf=GexfFactory.newGexf();
-		Graph graph =gexf.getGraph();
+		Gexf gexf = GexfFactory.newGexf("rdf2gephi", "A GEXF graph converted from RDF");
+		Graph graph = gexf.getGraph();
 		graph.setDefaultEdgeType(EdgeType.DIRECTED);	
 		
 		//Attributes
@@ -75,8 +82,8 @@ public class RdfToGexfParserBuilder {
 			log.info("building edges with query ...");
 			log.info(edgesQuery);
 			EdgesQueryResultHandler myEdgesHandler = new EdgesQueryResultHandler(graph, edgeTypeAttribute);
-			Perform.on(c).select(edgesQuery, myEdgesHandler);
-			log.info("Done building "+myEdgesHandler.counter+" edges");
+			RepositoryConnections.select(c, edgesQuery, myEdgesHandler);
+			log.info("Done building "+myEdgesHandler.counter+" edges"+(myEdgesHandler.counterStartDates>0?" with "+myEdgesHandler.counterStartDates+" start dates":"")+(myEdgesHandler.counterEndDates>0?" with "+myEdgesHandler.counterEndDates+" end dates":""));
 
 			// now populate with labels
 			log.info("building labels with query ...");
@@ -93,10 +100,26 @@ public class RdfToGexfParserBuilder {
 			AttributesQueryResultHandler myAttributesHandler = new AttributesQueryResultHandler(graph, myEdgesHandler.nodesMap);
 			executeInBatch(attributesQuery, c, myAttributesHandler, nodeList);
 			log.info("done populating attributes : "+myAttributesHandler.counter+" attributes");
+
+			// now populate with dates
+			DatesQueryResultHandler myDatesHandler = new DatesQueryResultHandler(graph, myEdgesHandler.nodesMap);
+			if(this.datesQuery != null) {				
+				executeInBatch(datesQuery, c, myDatesHandler, nodeList);
+				log.info("done populating dates : "+myDatesHandler.counter+" dates");
+			}
+
+			// now populate with parents
+			ParentsQueryResultHandler myParentsHandler = new ParentsQueryResultHandler(graph, myEdgesHandler.nodesMap);
+			if(this.parentsQuery != null) {				
+				executeInBatch(parentsQuery, c, myParentsHandler, nodeList);
+				log.info("done populating parents : "+myParentsHandler.counter+" parents");
+			}
 			
-			log.info(myEdgesHandler.counter+" edges");
+			log.info(myEdgesHandler.counter+" edges"+(myEdgesHandler.counterStartDates>0?" with "+myEdgesHandler.counterStartDates+" start dates":"")+(myEdgesHandler.counterEndDates>0?" with "+myEdgesHandler.counterEndDates+" end dates":""));
 			log.info(myLabelsHandler.counter+" labels");
-			log.info(myLabelsHandler.counter+" attributes");
+			log.info(myAttributesHandler.counter+" attributes");
+			log.info(myDatesHandler.counter+" dates");
+			log.info(myParentsHandler.counter+" parents");
 		}
 
 			
@@ -125,7 +148,8 @@ public class RdfToGexfParserBuilder {
 			
 			log.info("batch "+i);
 			log.debug(finalQuery);
-			Perform.on(c).select(finalQuery, handler);
+			
+			RepositoryConnections.select(c, finalQuery, handler);
 		}	
 	}
 
@@ -133,8 +157,12 @@ public class RdfToGexfParserBuilder {
 
 		private Graph graph;
 		private Attribute edgeTypeAttribute;
-		public int counter = 0;
+		
 		public Map<String, Node> nodesMap = new HashMap<String, Node>();
+
+		public int counter = 0;
+		public int counterStartDates = 0;
+		public int counterEndDates = 0;
 
 		public EdgesQueryResultHandler(Graph graph, Attribute edgeTypeAttribute) {
 			this.graph = graph;
@@ -174,9 +202,10 @@ public class RdfToGexfParserBuilder {
 				int index = edgeUri.contains("#")?edgeUri.lastIndexOf("#"):edgeUri.lastIndexOf("/");
 				String label=edgeUri.substring(index+1);
 				
+				Edge edge = null;
 				if(!nodeS.hasEdgeTo(nodeO.getId())) {
 					log.debug("Edge : "+counter+" "+subject.stringValue()+" --"+label+"--> "+object.stringValue());
-					Edge edge = nodeS.connectTo(
+					edge = nodeS.connectTo(
 						UUID.randomUUID().toString(),
 						label,
 						nodeO
@@ -184,7 +213,30 @@ public class RdfToGexfParserBuilder {
 					
 					// set edge type attribute
 					edge.getAttributeValues().addValue(edgeTypeAttribute, label);
+				} else {
+					final Node lookupNode = nodeO;
+					edge = nodeS.getEdges().stream().filter(e -> e.getTarget().equals(lookupNode)).findFirst().get();
 				}
+
+				// start
+				if(bindingSet.hasBinding("start")) {
+					Value start = bindingSet.getBinding("start").getValue();
+					if(start != null) {
+						edge.setStartValue(((Literal) start).calendarValue().toGregorianCalendar().getTime());
+						counterStartDates++;
+					}
+				}
+
+				// end
+				if(bindingSet.hasBinding("end")) {
+					Value end = bindingSet.getBinding("end").getValue();
+					if(end != null) {
+						edge.setEndValue(((Literal) end).calendarValue().toGregorianCalendar().getTime());
+						counterEndDates++;
+					}
+				}
+
+
 				counter++;						
 				
 			} else {
@@ -283,87 +335,108 @@ public class RdfToGexfParserBuilder {
 				Attribute at = new AttributeListImpl(AttributeClass.NODE).createAttribute(attributeName,AttributeType.STRING,attributeName);
 				String valueString = value instanceof org.eclipse.rdf4j.model.Resource ? getLocalName(value.stringValue()) : value.stringValue();
 				node.getAttributeValues().addValue(at, valueString);
-				log.debug("Setting attribute of : "+node.getId()+" "+attributeName+"="+value.stringValue());
+				log.trace("Setting attribute of : "+node.getId()+" "+attributeName+"="+value.stringValue());
 				counter++;	
 			}
 		}		
 	}
 
-	/*
-	class AttributesQueryResultHandler extends AbstractTupleQueryResultHandler {
+	class DatesQueryResultHandler extends AbstractTupleQueryResultHandler {
 
 		private Graph graph;
 		private Map<String, Node> nodesMap;
 		public int counter = 0;
 
-		private transient AttributeList attributeList;
-
-		public AttributesQueryResultHandler(Graph graph, Map<String, Node> nodesMap) {
-			this.graph = graph;
+		public DatesQueryResultHandler(Graph graph, Map<String, Node> nodesMap) {
 			this.nodesMap = nodesMap;
+			this.graph = graph;
 		}
 
+		/**
+		 * Sets the graph mode to dynamic if we have any result on dates
+		 */
 		@Override
 		public void startQueryResult(List<String> bindingNames) throws TupleQueryResultHandlerException {
-			// avoid creating a new attribute list for each batch iteration
-			// only in the first iteration
-			if(graph.getAttributeLists().size() > 1) {
-				return;
-			}
-
-			// add all attributes to the graph
-			AttributeList attributeList = new AttributeListImpl(AttributeClass.NODE);
-			for (String property : bindingNames) {
-				if(!property.equals("subject")) {						
-					log.info("Adding property "+property);
-					attributeList.createAttribute(property, AttributeType.STRING, property);
-				}
-			}
-			//Ajout de la liste des attributs au graphe
-			graph.getAttributeLists().add(attributeList);
+			this.graph.setMode(Mode.DYNAMIC).setTimeType("date");
 		}
 
 		@Override
 		public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {	
 			if(
 				bindingSet.hasBinding("subject")
+				&&
+				(
+					bindingSet.hasBinding("start")
+					||
+					bindingSet.hasBinding("end")
+				)
 			) {
 
 				// subject
 				Value subject = bindingSet.getBinding("subject").getValue();
 				Node node = this.nodesMap.get(subject.stringValue());
 
-				if(node != null) {
-					for (String aBinding : bindingSet.getBindingNames()) {
-						// skip the subject
-						if(aBinding.equals("subject")) {
-							continue;
-						}
-
-						// get the value
-						Value value = bindingSet.getBinding(aBinding).getValue();
-						Attribute at=new AttributeListImpl(AttributeClass.NODE).createAttribute(aBinding,AttributeType.STRING,aBinding);
-						node.getAttributeValues().addValue(at, value.stringValue());
-						log.debug("Setting attribute of : "+node.getId()+" "+aBinding+"="+value.stringValue());
-						counter++;					
+				if(bindingSet.hasBinding("start")) {
+					Value startValue = bindingSet.getBinding("start").getValue();
+					if(startValue != null) {
+						node.setStartValue(((Literal) startValue).calendarValue().toGregorianCalendar().getTime());
 					}
 				}
 
-				counter++;						
+				if(bindingSet.hasBinding("end")) {
+					Value endValue = bindingSet.getBinding("end").getValue();
+					if(endValue != null) {
+						node.setEndValue(((Literal) endValue).calendarValue().toGregorianCalendar().getTime());
+					}
+				}
+
+				counter++;
+										
 			} else {
-				log.error("binding set without expected bindings ('subject'): "+bindingSet);
+				log.error("binding set without expected bindings ('subject' + ['start' or 'end']): "+bindingSet);
 			}
+		}
+	}
+
+
+	class ParentsQueryResultHandler extends AbstractTupleQueryResultHandler {
+
+		private Graph graph;
+		private Map<String, Node> nodesMap;
+		public int counter = 0;
+
+		public ParentsQueryResultHandler(Graph graph, Map<String, Node> nodesMap) {
+			this.nodesMap = nodesMap;
+			this.graph = graph;
 		}
 
 		@Override
-		public void endQueryResult() throws TupleQueryResultHandlerException {
-			// TODO Auto-generated method stub
-			super.endQueryResult();
-		}
+		public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {	
+			if(
+				bindingSet.hasBinding("subject")
+				&&
+				bindingSet.hasBinding("parent")
+			) {
 
-		
+				// subject
+				Value subject = bindingSet.getBinding("subject").getValue();
+				Node node = this.nodesMap.get(subject.stringValue());
+
+				if(bindingSet.hasBinding("parent")) {
+					Value parent = bindingSet.getBinding("parent").getValue();
+					if(parent != null) {
+						node.setPID(parent.stringValue());
+						log.trace("Setting parents of : "+node.getId()+" to "+parent.stringValue());
+					}
+				}
+
+				counter++;
+										
+			} else {
+				log.error("binding set without expected bindings ('subject' + 'parent'): "+bindingSet);
+			}
+		}
 	}
-		 */
 
 
 	public static String getLocalName(String fullUri) {

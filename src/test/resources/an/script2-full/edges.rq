@@ -1,0 +1,84 @@
+PREFIX rico: <https://www.ica.org/standards/RiC/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?subject ?edge ?object ?start ?end
+WHERE {
+    {
+        ?officeNotarial a rico:CorporateBody .
+        ?officeNotarial rico:groupIsSourceOfMembershipRelation ?membershipRelation .    
+        ?membershipRelation rico:membershipRelationHasTarget ?person .      
+
+        OPTIONAL {
+            ?membershipRelation rico:beginningDate ?start .
+        }
+        OPTIONAL {
+            ?membershipRelation rico:endDate ?end .
+        }
+
+        BIND(?person AS ?subject)
+        BIND(rico:MembershipRelation AS ?edge)
+        BIND(?officeNotarial AS ?object)
+    }
+    UNION
+    {
+        ?agentTemporalRelation a rico:AgentTemporalRelation .
+        ?agentTemporalRelation rico:agentTemporalRelationHasSource ?predecesseur .
+        ?agentTemporalRelation rico:agentTemporalRelationHasTarget ?sucesseur .
+
+        OPTIONAL {
+            ?agentTemporalRelation rico:beginningDate ?start .
+        }
+        OPTIONAL {
+            ?agentTemporalRelation rico:endDate ?end .
+        }
+
+        BIND(?predecesseur AS ?subject)
+        BIND(rico:AgentTemporalRelation AS ?edge)
+        BIND(?sucesseur AS ?object)
+    }
+    UNION
+    {        
+        ?familyRelation a rico:FamilyRelation .
+        ?familyRelation rico:familyRelationConnects ?first .
+        ?familyRelation rico:familyRelationConnects ?second .
+        FILTER(STR(?first) < STR(?second))
+
+        OPTIONAL {
+            ?familyRelation rico:beginningDate ?start .
+        }
+        OPTIONAL {
+            ?familyRelation rico:endDate ?end .
+        }
+
+        BIND(?first AS ?subject)
+        BIND(rico:FamilyRelation AS ?edge)
+        BIND(?second AS ?object)
+    }
+    UNION
+    {        
+        ?agentToAgentRelation a rico:AgentToAgentRelation .
+        ?agentToAgentRelation rico:agentRelationConnects ?first .
+        ?agentToAgentRelation rico:agentRelationConnects ?second .
+        FILTER(STR(?first) < STR(?second))
+
+        OPTIONAL {
+            ?agentToAgentRelation rico:beginningDate ?start .
+        }
+        OPTIONAL {
+            ?agentToAgentRelation rico:endDate ?end .
+        }
+
+        BIND(?first AS ?subject)
+        BIND(rico:AgentToAgentRelation AS ?edge)
+        BIND(?second AS ?object)
+    }
+    UNION
+    {        
+        ?archive rico:hasProvenance ?producteur .
+        FILTER(isIRI(?producteur))
+
+        BIND(?archive AS ?subject)
+        BIND(rico:hasProvenance AS ?edge)
+        BIND(?producteur AS ?object)
+    }
+}

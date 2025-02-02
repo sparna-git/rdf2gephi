@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import fr.sparna.rdf.gexf.SparqlRequest;
-import fr.sparna.rdf.rdf4j.toolkit.query.Perform;
+import fr.sparna.rdf.rdf4j.RepositoryConnections;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Edge;
 import it.uniroma1.dis.wsngroup.gexf4j.core.EdgeType;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Gexf;
@@ -49,7 +49,14 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 	private transient Repository repo;
 
 	@Override
-	public Gexf buildGexf(Repository repo, String edgesQuery, String labelsQuery, String attributesQuery, String datesQuery) throws FileNotFoundException, IOException {
+	public Gexf buildGexf(
+		Repository repo,
+		String edgesQuery,
+		String labelsQuery,
+		String attributesQuery,
+		String datesQuery,
+		String parentsQuery
+	) throws FileNotFoundException, IOException {
 
 		// defer to a separate class
 		RdfToGexfParserBuilder builder = new RdfToGexfParserBuilder(
@@ -57,7 +64,8 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 			edgesQuery,
 			labelsQuery,
 			attributesQuery,
-			datesQuery
+			datesQuery,
+			parentsQuery
 		);			
 
 		return builder.buildGexf();
@@ -73,7 +81,7 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 		this.repo=repo;
 		
 		// création du graphe
-		Gexf gexf=GexfFactory.newGexf();
+		Gexf gexf=GexfFactory.newGexf("SPARNA", "rdf 2 gephi");
 		Graph graph =gexf.getGraph();
 		graph.setDefaultEdgeType(EdgeType.DIRECTED);
 
@@ -167,7 +175,7 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 
 			MyTupleQueryResultHandler myNodeHandler = new MyTupleQueryResultHandler();
 
-			Perform.on(c).select(sparqlRequest, myNodeHandler);
+			RepositoryConnections.select(c, sparqlRequest, myNodeHandler);
 			log.debug("Done adding nodes");
 			
 			
@@ -209,7 +217,7 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 				);
 			}
 
-			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
+			RepositoryConnections.select(c, sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {
 					if(bindingSet.getValue("p")!=null){
@@ -238,7 +246,7 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 		graph.getAttributeLists().add(attrList);
 		
 		String sparqlRequest=SparqlRequest.LIST_EDGES;
-		Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
+		RepositoryConnections.select(c, sparqlRequest, new AbstractTupleQueryResultHandler() {
 			
 			int counter=0;
 			
@@ -310,7 +318,7 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 		List<NodeAttribute> list=new ArrayList<NodeAttribute>();
 		try(RepositoryConnection c = repo.getConnection()) {
 
-			Perform.on(c).select(sparqlRequest, new AbstractTupleQueryResultHandler() {
+			RepositoryConnections.select(c, sparqlRequest, new AbstractTupleQueryResultHandler() {
 				@Override
 				public void handleSolution(BindingSet bindingSet) throws TupleQueryResultHandlerException {					
 					if(bindingSet.getValue("node")!=null){

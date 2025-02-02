@@ -1,0 +1,36 @@
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX org: <http://www.w3.org/ns/org#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX epvoc: <https://data.europarl.europa.eu/def/epvoc#>
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX eli-dl: <http://data.europa.eu/eli/eli-draft-legislation-ontology#>
+SELECT ?subject ?edge ?object ?start ?end
+WHERE {
+	{
+		?subject a foaf:Person .
+		?subject org:hasMembership ?membership .
+		?membership org:organization ?object .
+		# ?membership epvoc:membershipClassification <https://data.europarl.europa.eu/def/ep-entities/EU_POLITICAL_GROUP> .
+		# BIND(org:memberOf AS ?edge)
+		# The role is the edge
+		?membership org:role ?edge .
+
+		FILTER NOT EXISTS {
+			?object a eli-dl:ParliamentaryTerm .
+		}
+
+		?membership org:memberDuring/dcat:startDate ?start .
+		?membership org:memberDuring/dcat:endDate ?end .
+	}
+	UNION
+	{
+		FILTER NOT EXISTS {
+			?subject a eli-dl:ParliamentaryTerm .
+		}
+		?subject a org:Organization .
+		?subject dcterms:isVersionOf ?object .
+		?object a org:Organization .
+		BIND(dcterms:isMemberOf AS ?edge)
+	}
+}
