@@ -241,6 +241,11 @@ The parents query MUST use the `?subject` variable to hold the node in the graph
 This query is optional. If not provided, no default query is used and nodes will not have a parent in the graph.
 
 
+## Exemple queries
+
+Look under the [src/test/resources](https://github.com/sparna-git/rdf2gephi/tree/master/src/test/resources) for sets of example queries on various use-cases.
+
+
 ## Support for dynamic graphs
 
 rdf2gephi supports the creation of dynamic graphs where we can see the evolution of the graph over time. For this:
