@@ -12,7 +12,7 @@ WHERE {
 	# Everything that is a skos:Concept is an attribute by default
 	UNION
 	{
-		?subject ?attribute ?concept .
-		?concept a skos:Concept .
+		?subject ?attribute ?value .
+		?value a skos:Concept .
 	}
 }	

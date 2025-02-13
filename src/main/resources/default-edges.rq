@@ -1,6 +1,22 @@
 # Default edges query
-# Selects all the triples in the graph
+# Selects all the triples in the graph relating 2 IRIs that are not skos:Concepts
+# (skos:Concepts are considered attributes)
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 SELECT ?subject ?edge ?object
 WHERE {
 	?subject ?edge ?object .
+	FILTER(
+		?edge != rdf:type
+		&&
+		isIRI(?object)
+		&&
+		isIRI(?subject)
+	)
+	FILTER NOT EXISTS {
+		?object a skos:Concept .
+	}
+	FILTER NOT EXISTS {
+		?subject a skos:Concept .
+	}
 }
