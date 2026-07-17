@@ -45,6 +45,7 @@ public class RdfToGexfParserBuilder {
 	private String attributesQuery;
 	private String datesQuery;
 	private String parentsQuery;
+	private int batchSize;
 
 	
 
@@ -54,7 +55,8 @@ public class RdfToGexfParserBuilder {
 		String labelsQuery,
 		String attributesQuery,
 		String datesQuery,
-		String parentsQuery
+		String parentsQuery,
+		int batchSize
 	) {
 		this.repository = repository;
 		this.edgesQuery = edgesQuery;
@@ -62,6 +64,7 @@ public class RdfToGexfParserBuilder {
 		this.attributesQuery = attributesQuery;
 		this.datesQuery = datesQuery;
 		this.parentsQuery = parentsQuery;
+		this.batchSize = batchSize;
 	}
 
 	public Gexf buildGexf() throws FileNotFoundException, IOException {
@@ -130,7 +133,7 @@ public class RdfToGexfParserBuilder {
 
 	private void executeInBatch(String query, RepositoryConnection c, TupleQueryResultHandler handler, List<String> nodeList) {
 		// process in batches
-		int BATCH_SIZE = 200;
+		int BATCH_SIZE = this.batchSize;
 
 		for (int i = 0; i < nodeList.size(); i += BATCH_SIZE) {
 			int end = Math.min(i + BATCH_SIZE, nodeList.size());

@@ -59,6 +59,17 @@ public class SparqlArguments {
 		)
 		private File parentsQuery;
 
+		@Parameter(
+				names = { "-b", "--batchSize" },
+				description = "Batch size to use during SPARQL queries, defaults to 200",
+				required = false
+		)
+		private int batchSize = 200;
+
+		public int getBatchSize() {
+			return this.batchSize;
+		}
+
 		public String getInput() {
 			return this.input;
 		}
