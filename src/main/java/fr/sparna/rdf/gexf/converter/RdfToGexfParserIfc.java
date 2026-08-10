@@ -30,7 +30,8 @@ public interface RdfToGexfParserIfc {
 		String labelsQuery,
 		String attributesQuery,
 		String datesQuery,
-		String parentsQuery
+		String parentsQuery,
+		int batchSize
 	) throws FileNotFoundException, IOException ;
 
 }

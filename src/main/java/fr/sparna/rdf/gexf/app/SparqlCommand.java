@@ -43,7 +43,8 @@ public class SparqlCommand implements CommandIfc {
 			readFileParameterWithDefaultResource(args.getLabelsQuery(), "/default-labels.rq"),
 			readFileParameterWithDefaultResource(args.getAttributesQuery(), "/default-attributes.rq"),
 			args.getDatesQuery() != null ? Files.readString(args.getDatesQuery().toPath()) : null,
-			args.getParentsQuery() != null ? Files.readString(args.getParentsQuery().toPath()) : null
+			args.getParentsQuery() != null ? Files.readString(args.getParentsQuery().toPath()) : null,
+			args.getBatchSize()
 		);
 
 		File f = new File(args.getOutput());

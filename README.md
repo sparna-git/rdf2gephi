@@ -19,6 +19,7 @@ java -jar rdf2gephi-1.0-onejar.jar sparql \
 --edges queries/edges.rq \
 --attributes queries/attributes.rq \
 --labels queries/labels.rq \
+--batchSize 50 \
 --output output.gexf
 ```
 
@@ -81,6 +82,8 @@ The full options of the command are:
             columns: the first one is the subject, the second one is the 
             attribute URI, the third one is the attribute value (a literal or 
             a URI).
+          -b, --batchSize
+            Batch size to use during SPARQL queries, defaults to 200
           -d, --dates
             Path to the file containing the SPARQL query to retrieve date 
             ranges, e.g. 'sparql/dates.rq'

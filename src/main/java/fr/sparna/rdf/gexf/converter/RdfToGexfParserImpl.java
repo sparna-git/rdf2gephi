@@ -55,7 +55,8 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 		String labelsQuery,
 		String attributesQuery,
 		String datesQuery,
-		String parentsQuery
+		String parentsQuery,
+		int batchSize
 	) throws FileNotFoundException, IOException {
 
 		// defer to a separate class
@@ -65,7 +66,8 @@ public class RdfToGexfParserImpl implements RdfToGexfParserIfc{
 			labelsQuery,
 			attributesQuery,
 			datesQuery,
-			parentsQuery
+			parentsQuery,
+			batchSize
 		);			
 
 		return builder.buildGexf();
